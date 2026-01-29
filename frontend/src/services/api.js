@@ -52,17 +52,30 @@ export const graphApi = {
   },
 
   // 3. Алгоритм Дейкстри
-  runDijkstra: async (nodes, edges, isDirected, startNode, endNode) => {
+runDijkstra: async (nodes, edges, isDirected, startNode, endNode) => {
+    const response = await axios.post(`${API_URL}/dijkstra/`, {
+      nodes: nodes.map(n => ({ id: n.id, label: n.label })),
+      // ВАЖЛИВО: додаємо hasWeight тут!
+      edges: edges.map(e => ({ 
+        id: e.id, 
+        from: e.from, 
+        to: e.to, 
+        weight: e.weight, 
+        hasWeight: e.hasWeight 
+      })),
+      is_directed: isDirected,
+      start_node: startNode,
+      end_node: endNode
+    });
+    return response.data;
+  },
+  // Алгоритм Флойда-Уоршелла
+  runFloyd: async (nodes, edges, isDirected) => {
     try {
-      const payload = {
-        ...formatGraphData(nodes, edges, isDirected),
-        start_node: startNode,
-        end_node: endNode
-      };
-      const response = await apiClient.post('/dijkstra/', payload);
+      const response = await apiClient.post('/floyd/', formatGraphData(nodes, edges, isDirected));
       return response.data;
     } catch (error) {
-      throw error.response?.data || { error: "Помилка в алгоритмі Дейкстри" };
+      throw error.response?.data || { error: "Помилка в алгоритмі Флойда" };
     }
   },
 

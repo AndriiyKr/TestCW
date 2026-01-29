@@ -14,14 +14,15 @@ const Node = ({
   const getColors = () => {
     if (isHighlighted) {
       return {
-        fill: "#ef4444", // Червоний для алгоритмів
+        fill: "#ef4444", // Червоний для підсвічування алгоритмів (Дейкстра, Ейлер тощо)
         stroke: "#b91c1c",
         text: "white"
       };
     }
     return {
-      fill: "white",
-      stroke: "#1e293b", // Темно-синій/чорний для звичайного стану
+      // ВИПРАВЛЕНО: Використовуємо колір розфарбування, якщо він переданий, інакше білий
+      fill: node.color || "white",
+      stroke: "#1e293b", // Темно-синій/чорний контур для звичайного стану
       text: "#1e293b"
     };
   };
@@ -55,7 +56,7 @@ const Node = ({
         cx={node.x}
         cy={node.y}
         r={radius}
-        fill={colors.fill}
+        fill={colors.fill} // Тепер колір змінюється динамічно
         stroke={colors.stroke}
         strokeWidth="2.5"
         className="transition-colors duration-300"

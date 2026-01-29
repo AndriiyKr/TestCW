@@ -1,15 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  Settings2, 
-  Play, 
-  Database, 
-  Info,
-  Map as MapIcon,
-  GitGraph
-} from 'lucide-react';
-import MatrixDisplay from './MatrixDisplay';
+import { Info, Settings2, BarChart3, Play, CheckCircle2, RefreshCw } from 'lucide-react';
 import GraphStats from './GraphStats';
+import MatrixDisplay from './MatrixDisplay';
 import AlgorithmResults from './AlgorithmResults';
+import AdjacencyListDisplay from './AdjacencyListDisplay';
 
 const Sidebar = ({ 
   nodes, 
@@ -17,152 +11,238 @@ const Sidebar = ({
   isDirected, 
   analysis, 
   solutions, 
-  algoResult, 
+  highlightedEdges,
+  dijkstraResult, 
+  dfsResult, 
+  bfsResult, 
+  floydResult,
   onRunAlgo, 
-  onClearAlgo 
+  onClearDijkstra, 
+  onClearDFS, 
+  onClearBFS, 
+  onAnalyze, 
+  onHighlightPath,
+  activePathType,
+  onShowColoring,
+  isColoringActive
 }) => {
-  const [selectedAlgo, setSelectedAlgo] = useState('dijkstra');
-  const [startNode, setStartNode] = useState('');
-  const [endNode, setEndNode] = useState('');
+  const [dijkstraStart, setDijkstraStart] = useState('');
+  const [dijkstraEnd, setDijkstraEnd] = useState('');
+  const [dfsStart, setDfsStart] = useState('');
+  const [bfsStart, setBfsStart] = useState('');
 
-  const nodeLabels = nodes.map(n => n.label);
+  const academicInfo = "Цей вебзастосунок розробив Кравчук Андрій, студент групи ПМІ-34с Факультету прикладної математики та інформатики ЛНУ ім. І. Франка.";
 
-  const handleRun = () => {
-    if (!startNode) return alert("Оберіть початкову вершину!");
-    
-    // Знаходимо ID вершин на основі вибраних міток (Labels)
-    const startId = nodes.find(n => n.label === startNode)?.id;
-    const endId = nodes.find(n => n.label === endNode)?.id;
-
-    onRunAlgo(selectedAlgo, { 
-      start_node: startId, 
-      end_node: endId 
-    });
+  const handleSelectChange = (setter, clearFn, val) => {
+    setter(val);
+    if (clearFn) clearFn(); 
   };
 
   return (
-    <aside className="h-full flex flex-col bg-white overflow-hidden">
-      {/* Заголовок панелі */}
-      <div className="p-6 border-b border-slate-100 flex items-center gap-3 bg-gradient-to-r from-slate-50 to-white">
-        <div className="p-2 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-100">
-          <Settings2 size={24} />
-        </div>
-        <div>
-          <h2 className="text-xl font-black text-slate-800 tracking-tight">Панель аналізу</h2>
-          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Graph Tool v1.0</p>
+    <div className="flex flex-col h-full bg-white border-l-2 border-slate-100 shadow-none">
+      
+      {/* HEADER */}
+      <div className="p-6 border-b border-slate-200 bg-slate-50/30 flex justify-between items-center">
+        <h2 className="text-xl font-black text-slate-900 tracking-tight uppercase">
+          Аналіз графів
+        </h2>
+        <div className="relative group">
+          <div className="p-2 text-slate-400 hover:text-slate-900 transition-colors cursor-help">
+            <Info size={24} />
+          </div>
+          <div className="absolute right-0 top-full mt-2 w-72 p-5 bg-slate-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-50 leading-relaxed shadow-xl">
+            <div className="flex gap-2 mb-2 text-blue-400 font-black uppercase text-xs">
+              <CheckCircle2 size={14} /> Про проект
+            </div>
+            {academicInfo}
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-8 scrollbar-thin scrollbar-thumb-slate-200">
+      <div className="flex-1 overflow-y-auto pl-8 pr-12 py-2">
         
-        {/* БЛОК 1: Керування алгоритмами */}
-        <section className="bg-slate-900 rounded-2xl p-5 text-white shadow-xl shadow-slate-200 relative overflow-hidden">
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-4">
-              <Play size={18} className="text-blue-400" />
-              <h3 className="font-bold text-xs uppercase tracking-widest">Запуск алгоритмів</h3>
+        {/* РОЗДІЛ 1: ХАРАКТЕРИСТИКИ */}
+        <section>
+          <div className="flex items-center justify-between py-8 border-b border-slate-100">
+            <div className="flex items-center gap-3 text-slate-900">
+              <BarChart3 size={24} className="text-slate-800" />
+              <h3 className="font-black text-lg uppercase tracking-wider">Характеристики</h3>
             </div>
+            
+            <button 
+              onClick={onAnalyze}
+              disabled={nodes.length === 0}
+              className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white text-xs rounded-md font-black uppercase tracking-widest hover:bg-blue-600 transition-all active:scale-95 disabled:bg-slate-100 disabled:text-slate-300 shadow-sm"
+            >
+              <RefreshCw size={14} className={analysis ? "" : "animate-spin"} />
+              Аналізувати
+            </button>
+          </div>
 
-            <div className="space-y-4">
-              {/* Вибір алгоритму */}
-              <div className="grid grid-cols-3 gap-1 bg-slate-800 p-1 rounded-lg">
-                {['dijkstra', 'dfs', 'bfs'].map(algo => (
-                  <button
-                    key={algo}
-                    onClick={() => setSelectedAlgo(algo)}
-                    className={`py-1.5 text-[10px] font-bold rounded-md transition-all uppercase ${
-                      selectedAlgo === algo ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {algo}
-                  </button>
-                ))}
+          {!analysis ? (
+            <div className="py-24 text-center">
+              <p className="text-sm text-slate-400 font-bold uppercase tracking-widest italic text-center">
+                Дані відсутні. Натисніть кнопку вище.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-200 animate-in fade-in duration-500">
+              <div className="py-6">
+                <MatrixDisplay 
+                  adjMatrix={analysis.adjacency_matrix} 
+                  incMatrix={analysis.incidence_matrix} 
+                  nodes={analysis.nodesSnapshot || nodes} 
+                  edges={analysis.edgesSnapshot || edges} 
+                  isDirected={isDirected} 
+                />
               </div>
+              <div className="py-2">
+                <AdjacencyListDisplay data={analysis.adjacency_list} />
+              </div>
+              <div className="py-8">
+                <GraphStats 
+                  analysis={analysis} 
+                  solutions={solutions} 
+                  isDirected={isDirected} 
+                  onHighlightPath={onHighlightPath}
+                  onShowColoring={onShowColoring}
+                  isColoringActive={isColoringActive}
+                  highlightedEdges={highlightedEdges}
+                  activePathType={activePathType}
+                />
+              </div>
+            </div>
+          )}
+        </section>
 
-              {/* Форма параметрів */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase ml-1">Старт</label>
+        <div className="h-4 -mx-12 bg-slate-50 border-y border-slate-100" />
+
+        {/* РОЗДІЛ 2: АЛГОРИТМИ */}
+        <section className="py-10 pb-20">
+          <div className="flex items-center gap-3 mb-10 text-slate-900">
+            <Settings2 size={24} />
+            <h3 className="font-black text-lg uppercase tracking-wider">Алгоритми</h3>
+          </div>
+
+          <div className="divide-y-2 divide-slate-50">
+            
+            {/* 1. ДЕЙКСТРА */}
+            <div className="py-10 first:pt-0">
+              <h4 className="font-black text-slate-800 text-base uppercase tracking-widest mb-6">
+                Алгоритм Дейкстри
+              </h4>
+              <div className="grid grid-cols-2 gap-4 mb-5">
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Старт</label>
                   <select 
-                    value={startNode} 
-                    onChange={(e) => setStartNode(e.target.value)}
-                    className="w-full bg-slate-800 border-none rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500 transition-all"
+                    className="bg-white border-2 border-slate-200 rounded-lg px-4 py-3 text-sm font-black text-slate-800 outline-none focus:border-slate-900 transition-all cursor-pointer"
+                    value={dijkstraStart}
+                    onChange={(e) => handleSelectChange(setDijkstraStart, onClearDijkstra, e.target.value)}
                   >
                     <option value="">—</option>
-                    {nodeLabels.map(label => <option key={label} value={label}>{label}</option>)}
+                    {nodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
                   </select>
                 </div>
-
-                {selectedAlgo === 'dijkstra' && (
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-bold text-slate-400 uppercase ml-1">Кінець</label>
-                    <select 
-                      value={endNode} 
-                      onChange={(e) => setEndNode(e.target.value)}
-                      className="w-full bg-slate-800 border-none rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500 transition-all"
-                    >
-                      <option value="">—</option>
-                      {nodeLabels.map(label => <option key={label} value={label}>{label}</option>)}
-                    </select>
-                  </div>
-                )}
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Фініш</label>
+                  <select 
+                    className="bg-white border-2 border-slate-200 rounded-lg px-4 py-3 text-sm font-black text-slate-800 outline-none focus:border-slate-900 transition-all cursor-pointer"
+                    value={dijkstraEnd}
+                    onChange={(e) => handleSelectChange(setDijkstraEnd, onClearDijkstra, e.target.value)}
+                  >
+                    <option value="">—</option>
+                    {nodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
+                  </select>
+                </div>
               </div>
-
               <button 
-                onClick={handleRun}
-                className="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold text-sm shadow-lg shadow-blue-900/50 transition-all active:scale-95 flex items-center justify-center gap-2"
+                disabled={!dijkstraStart || !dijkstraEnd}
+                onClick={() => onRunAlgo('dijkstra', { start_node: dijkstraStart, end_node: dijkstraEnd })}
+                className="w-full py-4 bg-slate-900 text-white rounded-lg text-xs font-black uppercase tracking-widest hover:bg-blue-600 disabled:bg-slate-100 disabled:text-slate-300 transition-all"
               >
-                ЗАПУСТИТИ <GitGraph size={16} />
+                ОБЧИСЛИТИ НАЙКОРОТШИЙ ШЛЯХ
               </button>
+              <AlgorithmResults result={dijkstraResult} type="dijkstra" />
             </div>
-          </div>
-          {/* Декоративний фон для блоку алгоритмів */}
-          <div className="absolute -right-4 -bottom-4 text-white/5 pointer-events-none">
-            <MapIcon size={120} />
+
+            {/* 2. ФЛОЙД-ВОРШЕЛЛ */}
+            <div className="py-10">
+              <h4 className="font-black text-slate-800 text-base uppercase tracking-widest mb-6">
+                Алгоритм Флойда-Воршелла
+              </h4>
+              <button 
+                disabled={nodes.length === 0}
+                onClick={() => onRunAlgo('floyd')}
+                className="w-full py-4 bg-slate-900 text-white rounded-lg text-xs font-black uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-md disabled:bg-slate-100 disabled:text-slate-300"
+              >
+                ПОБУДУВАТИ МАТРИЦІ ШЛЯХІВ
+              </button>
+              <AlgorithmResults 
+                result={floydResult} 
+                type="floyd" 
+                onHighlightPath={onHighlightPath} 
+                nodes={nodes} 
+                edges={edges}
+                isDirected={isDirected}
+              />
+            </div>
+
+            {/* 3. DFS */}
+            <div className="py-10">
+              <h4 className="font-black text-slate-800 text-base uppercase tracking-widest mb-6">
+                Пошук у глибину (DFS)
+              </h4>
+              <div className="flex flex-col gap-2 mb-5">
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Початкова вершина</label>
+                <select 
+                  className="w-full bg-white border-2 border-slate-200 rounded-lg px-4 py-3 text-sm font-black text-slate-800 outline-none focus:border-slate-900 transition-all cursor-pointer"
+                  value={dfsStart}
+                  onChange={(e) => handleSelectChange(setDfsStart, onClearDFS, e.target.value)}
+                >
+                  <option value="">ВИБЕРІТЬ ВЕРШИНУ</option>
+                  {nodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
+                </select>
+              </div>
+              <button 
+                disabled={!dfsStart}
+                onClick={() => onRunAlgo('dfs', { start_node: dfsStart })}
+                className="w-full py-4 bg-emerald-700 text-white rounded-lg text-xs font-black uppercase tracking-widest hover:bg-emerald-800 disabled:bg-slate-100 disabled:text-slate-300 transition-all"
+              >
+                ЗАПУСТИТИ DFS ОБХІД
+              </button>
+              <AlgorithmResults result={dfsResult} type="dfs" />
+            </div>
+
+            {/* 4. BFS */}
+            <div className="py-10 last:pb-0">
+              <h4 className="font-black text-slate-800 text-base uppercase tracking-widest mb-6">
+                Пошук у ширину (BFS)
+              </h4>
+              <div className="flex flex-col gap-2 mb-5">
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Початкова вершина</label>
+                <select 
+                  className="w-full bg-white border-2 border-slate-200 rounded-lg px-4 py-3 text-sm font-black text-slate-800 outline-none focus:border-slate-900 transition-all cursor-pointer"
+                  value={bfsStart}
+                  onChange={(e) => handleSelectChange(setBfsStart, onClearBFS, e.target.value)}
+                >
+                  <option value="">ВИБЕРІТЬ ВЕРШИНУ</option>
+                  {nodes.map(n => <option key={n.id} value={n.id}>{n.label}</option>)}
+                </select>
+              </div>
+              <button 
+                disabled={!bfsStart}
+                onClick={() => onRunAlgo('bfs', { start_node: bfsStart })}
+                className="w-full py-4 bg-amber-600 text-white rounded-lg text-xs font-black uppercase tracking-widest hover:bg-amber-700 disabled:bg-slate-100 disabled:text-slate-300 transition-all"
+              >
+                ЗАПУСТИТИ BFS ОБХІД
+              </button>
+              <AlgorithmResults result={bfsResult} type="bfs" />
+            </div>
+
           </div>
         </section>
-
-        {/* БЛОК 2: Результати виконання алгоритмів */}
-        {algoResult && (
-          <AlgorithmResults 
-            type={selectedAlgo} 
-            result={algoResult} 
-            onClear={onClearAlgo} 
-          />
-        )}
-
-        {/* БЛОК 3: Матриці */}
-        <MatrixDisplay 
-          adjMatrix={analysis?.adjacency_matrix} 
-          incMatrix={analysis?.incidence_matrix} 
-          nodeLabels={nodeLabels} 
-        />
-
-        {/* БЛОК 4: Загальна статистика */}
-        <section>
-          <div className="flex items-center gap-2 mb-4 px-1">
-            <Database size={18} className="text-slate-400" />
-            <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Характеристики графа</h3>
-          </div>
-          <GraphStats 
-            analysis={analysis} 
-            solutions={solutions} 
-            isDirected={isDirected} 
-            onShowColoring={() => alert("Кольори вершин підсвічено!")} 
-          />
-        </section>
-
-        {/* Підказка */}
-        {!analysis && (
-          <div className="p-4 bg-amber-50 rounded-xl border border-amber-100 flex gap-3 animate-pulse">
-            <Info className="text-amber-500 shrink-0" size={20} />
-            <p className="text-[11px] text-amber-700 leading-relaxed font-medium">
-              Для отримання характеристик, матриць та розв'язання задач комівояжера, намалюйте граф та натисніть кнопку <strong>"Аналізувати"</strong> у верхній частині екрана.
-            </p>
-          </div>
-        )}
       </div>
-    </aside>
+    </div>
   );
 };
 

@@ -1,113 +1,86 @@
-import React, { useState } from 'react';
-import { Grid3X3, Table as TableIcon, ChevronRight, ChevronDown } from 'lucide-react';
+import React from 'react';
 
-const MatrixDisplay = ({ adjMatrix, incMatrix, nodeLabels }) => {
-  const [activeTab, setActiveTab] = useState('adj'); // 'adj' або 'inc'
-  const [isExpanded, setIsExpanded] = useState(true);
+const MatrixDisplay = ({ adjMatrix, incMatrix, nodes = [], edges = [], isDirected }) => {
+  // Якщо snapshot порожній, не рендеримо таблиці, щоб не було розбіжностей
+  if (!adjMatrix || !nodes || nodes.length === 0) return null;
 
-  if (!adjMatrix || adjMatrix.length === 0) return null;
-
-  const renderMatrix = (matrix, labelsX, labelsY) => (
-    <div className="overflow-x-auto border border-slate-100 rounded-xl bg-slate-50/50">
-      <table className="w-full text-center border-collapse">
-        <thead>
-          <tr>
-            <th className="p-2 bg-slate-100 border-b border-r border-slate-200 text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-              V \ E
-            </th>
-            {labelsX.map((label, idx) => (
-              <th key={idx} className="p-2 bg-slate-100 border-b border-slate-200 text-[11px] font-bold text-slate-600 min-w-[32px]">
-                {label}
+  const renderTable = (matrix, cols, rows, title) => (
+    <section className="py-8 first:pt-0">
+      <h3 className="font-black text-slate-900 text-sm uppercase tracking-[0.2em] mb-6 px-1">
+        {title}
+      </h3>
+      
+      <div className="overflow-x-auto border-2 border-slate-100 rounded-xl shadow-sm">
+        <table className="w-full text-center border-collapse">
+          <thead>
+            <tr className="bg-slate-50 border-b-2 border-slate-100">
+              <th className="p-4 border-r border-slate-100 bg-slate-100/30 text-[10px] font-black text-slate-400 italic min-w-[60px]">
+                V \ {title.includes('інцидент') ? 'E' : 'V'}
               </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {matrix.map((row, i) => (
-            <tr key={i} className="hover:bg-blue-50 transition-colors">
-              <td className="p-2 bg-slate-100 border-r border-slate-200 text-[11px] font-bold text-slate-600">
-                {labelsY[i]}
-              </td>
-              {row.map((val, j) => (
-                <td 
-                  key={j} 
-                  className={`p-2 border-b border-r border-slate-100 text-sm font-medium ${
-                    val !== 0 ? 'text-blue-600 bg-blue-50/30' : 'text-slate-300'
-                  }`}
+              {cols.map((c, i) => (
+                <th 
+                  key={i} 
+                  className="p-4 border-r border-slate-100 last:border-0 font-black text-slate-900 text-[11px] uppercase min-w-[50px]"
                 >
-                  {val}
-                </td>
+                  {c}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {matrix.map((row, i) => (
+              <tr key={i} className="hover:bg-slate-50 transition-colors">
+                <td className="p-4 bg-slate-50 border-r border-slate-100 font-black text-slate-900 text-xs">
+                  {rows[i]}
+                </td>
+                {row.map((val, j) => (
+                  <td 
+                    key={j} 
+                    className={`p-4 border-r border-slate-100 last:border-0 font-mono text-sm transition-all ${
+                      val !== 0 
+                        ? "text-indigo-700 font-black bg-indigo-50/30" 
+                        : "text-slate-300"
+                    }`}
+                  >
+                    {val}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 
-  // Створюємо мітки для ребер матриці інцидентності (e1, e2...)
-  const edgeLabels = incMatrix && incMatrix[0] 
-    ? incMatrix[0].map((_, i) => `e${i + 1}`) 
-    : [];
+  // Формуємо назви ребер на основі snapshot'а
+  const edgeLabels = (edges || []).map(e => {
+    const uNode = nodes.find(n => n.id === e.from);
+    const vNode = nodes.find(n => n.id === e.to);
+    const u = uNode ? uNode.label : '?';
+    const v = vNode ? vNode.label : '?';
+    return isDirected ? `(${u},${v})` : `{${u},${v}}`;
+  });
+
+  const nodeLabels = nodes.map(n => n.label);
 
   return (
-    <div className="mt-4 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-      {/* Заголовок з можливістю згортання */}
-      <div 
-        className="px-4 py-3 flex justify-between items-center cursor-pointer hover:bg-slate-50 transition-colors"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg">
-            <Grid3X3 size={18} />
-          </div>
-          <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Матричне представлення</h3>
-        </div>
-        {isExpanded ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
-      </div>
-
-      {isExpanded && (
-        <div className="p-4 border-t border-slate-100 animate-in fade-in slide-in-from-top-2 duration-300">
-          {/* Перемикач табів */}
-          <div className="flex p-1 bg-slate-100 rounded-xl mb-4">
-            <button
-              onClick={() => setActiveTab('adj')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-lg transition-all ${
-                activeTab === 'adj' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              <TableIcon size={14} /> Суміжності
-            </button>
-            <button
-              onClick={() => setActiveTab('inc')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-lg transition-all ${
-                activeTab === 'inc' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              <TableIcon size={14} /> Інцидентності
-            </button>
-          </div>
-
-          {/* Відображення вибраної матриці */}
-          {activeTab === 'adj' ? (
-            <div>
-              <p className="text-[11px] text-slate-400 mb-2 italic">Матриця розмірністю {nodeLabels.length}x{nodeLabels.length}</p>
-              {renderMatrix(adjMatrix, nodeLabels, nodeLabels)}
-            </div>
-          ) : (
-            <div>
-              <p className="text-[11px] text-slate-400 mb-2 italic">Матриця розмірністю {nodeLabels.length}x{edgeLabels.length}</p>
-              {edgeLabels.length > 0 ? (
-                renderMatrix(incMatrix, edgeLabels, nodeLabels)
-              ) : (
-                <div className="py-8 text-center text-slate-400 text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                  Додайте ребра, щоб побачити матрицю інцидентності
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+    <div className="divide-y divide-slate-200 font-sans">
+      {renderTable(
+        adjMatrix, 
+        nodeLabels, 
+        nodeLabels, 
+        "Матриця суміжності"
       )}
+      
+      {incMatrix && incMatrix.length > 0 && edgeLabels.length > 0 && 
+        renderTable(
+          incMatrix, 
+          edgeLabels, 
+          nodeLabels, 
+          "Матриця інцидентності"
+        )
+      }
     </div>
   );
 };

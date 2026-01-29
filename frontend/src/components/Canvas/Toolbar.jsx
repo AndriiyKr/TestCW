@@ -7,7 +7,8 @@ import {
   Type, 
   Weight, 
   Trash2,
-  Eraser 
+  Eraser,
+  RotateCcw 
 } from 'lucide-react';
 
 const Toolbar = ({ 
@@ -23,8 +24,8 @@ const Toolbar = ({
     {
       id: 'select',
       icon: <MousePointer2 size={20} />,
-      label: 'Вибір',
-      description: 'Перетягування вершин'
+      label: 'Курсор',
+      description: 'Перетягування вершин та ребер'
     },
     {
       id: 'vertex',
@@ -47,6 +48,12 @@ const Toolbar = ({
       disabled: !isDirected && hasEdges // Блокуємо, якщо вже є ребра
     },
     {
+      id: 'loop',
+      icon: <RotateCcw size={20} />,
+      label: 'Петля',
+      description: 'З’єднати вершину з собою'
+    },
+    {
       id: 'label',
       icon: <Type size={20} />,
       label: 'Назва',
@@ -63,7 +70,7 @@ const Toolbar = ({
       icon: <Eraser size={20} />,
       label: 'Гумка',
       description: 'Видалити вершину або ребро'
-    }
+    },
   ];
 
   return (
